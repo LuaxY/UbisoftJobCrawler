@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -24,11 +26,24 @@ const (
 	MaxPages   = 10
 )
 
+var (
+	city       string
+	IFTTTEvent string
+	IFTTTKey   string
+)
+
 func main() {
+	flag.StringVar(&city, "city", "Montreal", "Target city")
+	flag.StringVar(&IFTTTEvent, "ifttt-event", "", "IFTTT WebHook Event")
+	flag.StringVar(&IFTTTKey, "ifttt-key", "", "IFTTT WebHook Key")
+	flag.Parse()
+
+	os.Chdir(os.Getenv("HOME"))
+
 	var allJobs []*Job
 
 	for i := 0; i < MaxPages; i++ {
-		jobs, err := GetJobs("Montreal", i)
+		jobs, err := GetJobs(city, i)
 
 		if _, ok := err.(*NoJob); ok {
 			break
@@ -53,14 +68,14 @@ func main() {
 		}
 
 		msg := fmt.Sprintf("%s - %s - %s - %s", job.Title, job.City, job.Contract, job.Link)
-		http.Post("https://maker.ifttt.com/trigger/UbisoftJob/with/key/dP85AH95YM9QhijkHKtgJJ", "application/json", bytes.NewBuffer([]byte(`{"value1":"`+msg+`"}`)))
+		http.Post("https://maker.ifttt.com/trigger/"+IFTTTEvent+"/with/key/"+IFTTTKey, "application/json", bytes.NewBuffer([]byte(`{"value1":"`+msg+`"}`)))
 	}
 
 	ioutil.WriteFile(LastIdFile, []byte(strconv.FormatInt(allJobs[0].ID, 10)), os.ModePerm)
 }
 
 func GetJobs(city string, page int) ([]*Job, error) {
-	res, err := http.Get(fmt.Sprintf("https://careers.smartrecruiters.com/Ubisoft2/?search=&page=%d&location=%s", page, city))
+	res, err := http.Get(fmt.Sprintf("https://careers.smartrecruiters.com/Ubisoft2/?search=&page=%d&location=%s", page, url.QueryEscape(city)))
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to get url: %v", err)
