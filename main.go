@@ -71,7 +71,9 @@ func main() {
 		http.Post("https://maker.ifttt.com/trigger/"+IFTTTEvent+"/with/key/"+IFTTTKey, "application/json", bytes.NewBuffer([]byte(`{"value1":"`+msg+`"}`)))
 	}
 
-	ioutil.WriteFile(LastIdFile, []byte(strconv.FormatInt(allJobs[0].ID, 10)), os.ModePerm)
+	if len(allJobs) > 0 {
+		ioutil.WriteFile(LastIdFile, []byte(strconv.FormatInt(allJobs[0].ID, 10)), os.ModePerm)
+	}
 }
 
 func GetJobs(city string, page int) ([]*Job, error) {
@@ -97,7 +99,7 @@ func GetJobs(city string, page int) ([]*Job, error) {
 
 	doc.Find(".opening-job.job").Each(func(i int, s *goquery.Selection) {
 		link := s.Find("a").AttrOr("href", "")
-		title := s.Find("h3.details-title").Text()
+		title := s.Find(".details-title").Text()
 		city := s.Find(".details-desc .desc-item").Eq(0).Text()
 		contract := s.Find(".details-desc .desc-item").Eq(1).Text()
 
